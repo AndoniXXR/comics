@@ -1,0 +1,156 @@
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 1rem !important;
+    }
+    
+    .display-3 {
+        font-size: 2.5rem;
+    }
+    
+    .comic-card {
+        margin-bottom: 1rem;
+    }
+
+    .d-flex.gap-3 {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn-lg {
+        width: 200px;
+    }
+
+    /* Auth Forms */
+    .auth-header {
+        padding: 1.5rem;
+    }
+    
+    .auth-body {
+        padding: 1.5rem;
+    }
+    
+    .auth-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    .form-control {
+        padding: 10px 40px 10px 40px;
+    }
+    
+    .password-requirements {
+        padding: 0.5rem;
+    }
+    
+    .photo-preview {
+        width: 100px;
+        height: 100px;
+    }
+
+    /* Profile */
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .current-photo {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+
+    /* Comic Creation */
+    .comic-create-header {
+        padding: 1.5rem;
+    }
+    
+    .comic-create-body {
+        padding: 1.5rem;
+    }
+    
+    .form-section {
+        padding: 1rem;
+    }
+    
+    .status-options {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .cover-preview {
+        height: 200px;
+    }
+    
+    .pages-dropzone {
+        padding: 2rem 1rem;
+    }
+    
+    .pages-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
+    }
+    
+    .page-thumbnail {
+        height: 100px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .comic-image {
+        height: 150px;
+    }
+    
+    .comic-info {
+        padding: 1rem;
+    }
+
+    /* Auth Forms */
+    .auth-card {
+        margin: 1rem;
+        border-radius: 15px;
+    }
+    
+    .row > .col-md-8,
+    .row > .col-md-6 {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Comic Creation */
+    .comic-create-card {
+        margin: 0.5rem;
+        border-radius: 15px;
+    }
+    
+    .pages-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .page-thumbnail {
+        height: 80px;
+    }
+}

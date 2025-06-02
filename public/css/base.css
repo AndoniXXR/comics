@@ -1,0 +1,183 @@
+/* Variables CSS */
+:root {
+    --primary-purple: #6f42c1;
+    --dark-purple: #4a2c7a;
+    --deep-purple: #2d1b4e;
+    --accent-purple: #8b5cf6;
+    --light-purple: #a78bfa;
+}
+
+/* Estilos Base */
+body {
+    background: linear-gradient(135deg, var(--deep-purple) 0%, var(--dark-purple) 50%, var(--primary-purple) 100%);
+    min-height: 100vh;
+    color: #ffffff;
+}
+
+.navbar {
+    background: rgba(45, 27, 78, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    color: var(--light-purple) !important;
+    text-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+}
+
+.navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--light-purple) !important;
+    text-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
+}
+
+.main-content {
+    min-height: 80vh;
+    padding-top: 2rem;
+}
+
+.card {
+    background: rgba(45, 27, 78, 0.8);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    backdrop-filter: blur(10px);
+    color: white;
+}
+
+.card-header {
+    background: rgba(74, 44, 122, 0.8);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.btn-primary, .btn-gradient {
+    background: linear-gradient(45deg, var(--primary-purple), var(--accent-purple));
+    border: none;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover, .btn-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    background: linear-gradient(45deg, var(--accent-purple), var(--light-purple));
+}
+
+.btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: white;
+    color: white;
+}
+
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+    backdrop-filter: blur(10px);
+}
+
+.alert-success {
+    background: rgba(40, 167, 69, 0.2);
+    color: #d4edda;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.alert-danger {
+    background: rgba(220, 53, 69, 0.2);
+    color: #f8d7da;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.text-gradient {
+    background: linear-gradient(45deg, var(--light-purple), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+footer {
+    background: rgba(45, 27, 78, 0.95) !important;
+    border-top: 1px solid rgba(139, 92, 246, 0.3);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Corrección para elementos select */
+.form-control select,
+select.form-control {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 2px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    color: white !important;
+    padding: 12px 45px 12px 45px !important;
+    font-size: 1rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.form-control select:focus,
+select.form-control:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: var(--accent-purple) !important;
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.25) !important;
+    color: white !important;
+}
+
+/* Opciones del dropdown */
+.form-control select option,
+select.form-control option {
+    background: var(--deep-purple) !important;
+    color: white !important;
+    padding: 8px 12px !important;
+    border: none !important;
+}
+
+.form-control select option:hover,
+select.form-control option:hover,
+.form-control select option:checked,
+select.form-control option:selected {
+    background: var(--accent-purple) !important;
+    color: white !important;
+}
+
+/* Específico para Firefox */
+@-moz-document url-prefix() {
+    .form-control select,
+    select.form-control {
+        color-scheme: dark !important;
+    }
+    
+    .form-control select option,
+    select.form-control option {
+        background: #2d1b4e !important;
+        color: #ffffff !important;
+    }
+}
+
+/* Para WebKit browsers (Chrome, Safari, Edge) */
+.form-control select::-webkit-scrollbar,
+select.form-control::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-control select::-webkit-scrollbar-track,
+select.form-control::-webkit-scrollbar-track {
+    background: var(--deep-purple);
+    border-radius: 4px;
+}
+
+.form-control select::-webkit-scrollbar-thumb,
+select.form-control::-webkit-scrollbar-thumb {
+    background: var(--accent-purple);
+    border-radius: 4px;
+}
+
+.form-control select::-webkit-scrollbar-thumb:hover,
+select.form-control::-webkit-scrollbar-thumb:hover {
+    background: var(--light-purple);
+}
