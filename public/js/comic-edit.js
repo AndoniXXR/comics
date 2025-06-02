@@ -227,13 +227,26 @@ function updatePageNumbers() {
 function savePageOrder() {
     const newOrder = [];
     document.querySelectorAll('.page-management-item').forEach((item, index) => {
+        const pageId = parseInt(item.dataset.pageId);
+        const newNumber = index + 1;
+        
+        if (isNaN(pageId)) {
+            console.error('Page ID inválido:', item.dataset.pageId, item);
+            return;
+        }
+        
         newOrder.push({
-            id: parseInt(item.dataset.pageId),
-            newNumber: index + 1
+            id: pageId,
+            newNumber: newNumber
         });
     });
     
-    console.log('Guardando nuevo orden:', newOrder);
+    console.log('Orden a guardar:', newOrder);
+    
+    if (newOrder.length === 0) {
+        alert('❌ No hay páginas para reordenar');
+        return;
+    }
     
     // Obtener el ID del comic desde la URL
     const currentUrl = window.location.href;
@@ -242,6 +255,12 @@ function savePageOrder() {
     
     console.log('Comic ID detectado:', comicId);
     
+    if (!comicId || isNaN(comicId)) {
+        alert('❌ Error: No se pudo detectar el ID del comic');
+        console.error('URL actual:', currentUrl, 'Parts:', urlParts);
+        return;
+    }
+    
     // Obtener token CSRF
     const csrfToken = document.querySelector('meta[name="csrf-token"]');
     if (!csrfToken) {
@@ -249,7 +268,7 @@ function savePageOrder() {
         return;
     }
     
-    console.log('Token CSRF:', csrfToken.getAttribute('content'));
+    console.log('Enviando petición...');
     
     // Enviar AJAX
     fetch(`/comics/${comicId}/reorder-pages`, {
@@ -262,12 +281,12 @@ function savePageOrder() {
         body: JSON.stringify({ pages: newOrder })
     })
     .then(response => {
-        console.log('Respuesta del servidor:', response.status, response.statusText);
+        console.log('Respuesta recibida:', response.status, response.statusText);
         
         if (!response.ok) {
             return response.text().then(text => {
                 console.error('Error del servidor (texto):', text);
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}\nDetalle: ${text}`);
             });
         }
         
@@ -282,11 +301,13 @@ function savePageOrder() {
             
             // Actualizar badge con confirmación visual
             const badge = document.querySelector('.section-title .badge');
-            badge.classList.add('bg-success');
-            setTimeout(() => {
-                badge.classList.remove('bg-success');
-                badge.classList.add('bg-primary');
-            }, 2000);
+            if (badge) {
+                badge.classList.add('bg-success');
+                setTimeout(() => {
+                    badge.classList.remove('bg-success');
+                    badge.classList.add('bg-primary');
+                }, 2000);
+            }
         } else {
             alert('❌ Error al actualizar el orden: ' + (data.message || 'Error desconocido'));
             console.error('Error del servidor:', data);

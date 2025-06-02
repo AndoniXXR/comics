@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class ComicController extends Controller
 {
@@ -269,19 +270,30 @@ class ComicController extends Controller
     }
 
     /**
-     * Reordenar páginas del comic
-     */
-    public function reorderPages(Request $request, $id)
-    {
+ * Reordenar páginas del comic
+ */
+/**
+ * Reordenar páginas del comic
+ */
+public function reorderPages(Request $request, $id)
+{
+    try {
+        // Buscar el comic y verificar que pertenece al usuario
         $comic = Comic::where('user_id', Auth::id())->findOrFail($id);
         
+        // Validar los datos de entrada
         $validator = Validator::make($request->all(), [
-            'pages' => 'required|array',
+            'pages' => 'required|array|min:1',
             'pages.*.id' => 'required|integer|exists:comic_pages,id',
             'pages.*.newNumber' => 'required|integer|min:1'
         ]);
 
         if ($validator->fails()) {
+            \Log::error('Validación fallida en reorderPages', [
+                'errors' => $validator->errors(),
+                'data' => $request->all()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
@@ -289,47 +301,82 @@ class ComicController extends Controller
             ], 400);
         }
 
-        try {
-            // Verificar que todas las páginas pertenecen al comic del usuario
-            $pageIds = collect($request->pages)->pluck('id');
-            $validPages = ComicPage::where('comic_id', $comic->id)
-                                  ->whereIn('id', $pageIds)
-                                  ->count();
+        // Verificar que todas las páginas pertenecen al comic del usuario
+        $pageIds = collect($request->pages)->pluck('id');
+        $validPages = ComicPage::where('comic_id', $comic->id)
+                              ->whereIn('id', $pageIds)
+                              ->count();
+        
+        if ($validPages !== count($pageIds)) {
+            \Log::error('Páginas no válidas en reorderPages', [
+                'comic_id' => $comic->id,
+                'page_ids' => $pageIds,
+                'valid_count' => $validPages,
+                'total_count' => count($pageIds)
+            ]);
             
-            if ($validPages !== count($pageIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Algunas páginas no pertenecen a este comic'
-                ], 403);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Algunas páginas no pertenecen a este comic'
+            ], 403);
+        }
 
-            // Actualizar el número de página para cada página
+        // Usar transacción para evitar conflictos de unicidad
+        \DB::transaction(function () use ($request, $comic) {
+            $tempOffset = 10000; // Número base alto para evitar conflictos
+            
+            // Primero, asignar números temporales altos para evitar conflictos
+            foreach ($request->pages as $index => $pageData) {
+                ComicPage::where('id', $pageData['id'])
+                        ->where('comic_id', $comic->id)
+                        ->update(['page_number' => $tempOffset + $index + 1]);
+            }
+            
+            // Luego, asignar los números finales correctos
             foreach ($request->pages as $pageData) {
                 ComicPage::where('id', $pageData['id'])
                         ->where('comic_id', $comic->id)
                         ->update(['page_number' => $pageData['newNumber']]);
             }
+        });
 
-            \Log::info("Páginas reordenadas para comic {$comic->id} por usuario " . Auth::id());
+        \Log::info("Páginas reordenadas exitosamente", [
+            'comic_id' => $comic->id,
+            'user_id' => Auth::id(),
+            'pages_updated' => count($request->pages)
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Orden de páginas actualizado correctamente'
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Orden de páginas actualizado correctamente'
+        ]);
 
-        } catch (\Exception $e) {
-            \Log::error('Error reordenando páginas: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error interno del servidor'
-            ], 500);
-        }
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        \Log::error('Comic no encontrado en reorderPages', [
+            'comic_id' => $id,
+            'user_id' => Auth::id(),
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Comic no encontrado'
+        ], 404);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error en reorderPages', [
+            'comic_id' => $id,
+            'user_id' => Auth::id(),
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error interno del servidor: ' . $e->getMessage()
+        ], 500);
     }
-
-    /**
-     * Eliminar una página específica
-     */
+}
     public function deletePage($pageId)
     {
         try {
@@ -474,41 +521,112 @@ class ComicController extends Controller
     /**
      * Calificar comic
      */
-    public function rateComic(Request $request, $id)
-    {
+   /**
+ * Calificar comic
+ */
+public function rateComic(Request $request, $id)
+{
+    try {
         $comic = Comic::findOrFail($id);
         $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
 
         $validator = Validator::make($request->all(), [
             'rating' => 'required|integer|min:1|max:10'
         ]);
 
         if ($validator->fails()) {
+            \Log::error('Validación fallida en rateComic', [
+                'errors' => $validator->errors(),
+                'data' => $request->all(),
+                'user_id' => $user->id,
+                'comic_id' => $id
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Calificación inválida'
+                'message' => 'Calificación inválida. Debe ser un número entre 1 y 10.',
+                'errors' => $validator->errors()
             ], 400);
         }
 
-        // Actualizar o crear calificación
-        ComicRating::updateOrCreate(
-            [
+        // Buscar calificación existente
+        $existingRating = ComicRating::where('user_id', $user->id)
+                                   ->where('comic_id', $comic->id)
+                                   ->first();
+
+        if ($existingRating) {
+            // Actualizar calificación existente
+            $existingRating->update(['rating' => $request->rating]);
+            \Log::info('Calificación actualizada', [
                 'user_id' => $user->id,
-                'comic_id' => $comic->id
-            ],
-            [
+                'comic_id' => $comic->id,
+                'old_rating' => $existingRating->getOriginal('rating'),
+                'new_rating' => $request->rating
+            ]);
+        } else {
+            // Crear nueva calificación
+            ComicRating::create([
+                'user_id' => $user->id,
+                'comic_id' => $comic->id,
                 'rating' => $request->rating
-            ]
-        );
+            ]);
+            \Log::info('Nueva calificación creada', [
+                'user_id' => $user->id,
+                'comic_id' => $comic->id,
+                'rating' => $request->rating
+            ]);
+        }
 
         // Recalcular rating promedio del comic
         $averageRating = $comic->ratings()->avg('rating');
         $comic->update(['rating' => round($averageRating, 2)]);
 
+        \Log::info('Rating promedio actualizado', [
+            'comic_id' => $comic->id,
+            'new_average' => round($averageRating, 2),
+            'total_ratings' => $comic->ratings()->count()
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Comic calificado exitosamente',
-            'new_rating' => round($averageRating, 2)
+            'new_rating' => round($averageRating, 2),
+            'user_rating' => $request->rating,
+            'total_ratings' => $comic->ratings()->count()
         ]);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        \Log::error('Comic no encontrado en rateComic', [
+            'comic_id' => $id,
+            'user_id' => Auth::id(),
+            'error' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Comic no encontrado'
+        ], 404);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error en rateComic', [
+            'comic_id' => $id,
+            'user_id' => Auth::id(),
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'request_data' => $request->all()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error interno del servidor: ' . $e->getMessage()
+        ], 500);
     }
+}
 }

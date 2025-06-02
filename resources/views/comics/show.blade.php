@@ -47,10 +47,11 @@
     <div class="col-lg-3 col-md-4 mb-4">
         <div class="comic-cover-container">
             <div class="comic-cover">
-                @if($comic->cover_image)
-                    <img src="data:image/jpeg;base64,{{ base64_encode(file_get_contents($comic->cover_image_url)) }}" 
+                @if($comic->cover_image && $comic->cover_url)
+                    <img src="{{ $comic->cover_url }}" 
                          alt="{{ $comic->title }}" 
-                         class="cover-image">
+                         class="cover-image"
+                         onerror="this.parentElement.innerHTML='<div class=\'cover-placeholder\'><i class=\'fas fa-book fa-4x\'></i></div>'">
                 @else
                     <div class="cover-placeholder">
                         <i class="fas fa-book fa-4x"></i>
@@ -154,11 +155,11 @@
             <div class="page-container" id="pageContainer">
                 @foreach($comic->pages as $page)
                     <div class="comic-page" data-page="{{ $page->page_number }}" style="display: {{ $loop->first ? 'flex' : 'none' }}">
-                        <img src="data:image/jpeg;base64,{{ base64_encode(file_get_contents($page->image_url)) }}" 
+                        <img src="{{ route('comic.page', ['filename' => $page->image_path]) }}" 
                              alt="Página {{ $page->page_number }}" 
                              class="page-image"
                              onclick="nextPage()"
-                             onerror="console.error('Error cargando imagen:', this.src)">
+                             onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'600\'><rect width=\'100%\' height=\'100%\' fill=\'%23f8f9fa\'/><text x=\'50%\' y=\'50%\' font-family=\'Arial\' font-size=\'20\' fill=\'%23dc3545\' text-anchor=\'middle\' dy=\'0.3em\'>Error al cargar imagen</text></svg>'">
                     </div>
                 @endforeach
             </div>
@@ -171,8 +172,9 @@
                     <button class="page-thumb {{ $loop->first ? 'active' : '' }}" 
                             onclick="goToPage({{ $page->page_number }})"
                             data-page="{{ $page->page_number }}">
-                        <img src="data:image/jpeg;base64,{{ base64_encode(file_get_contents($page->image_url)) }}" 
-                             alt="Página {{ $page->page_number }}">
+                        <img src="{{ route('comic.page', ['filename' => $page->image_path]) }}" 
+                             alt="Página {{ $page->page_number }}"
+                             onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'80\'><rect width=\'100%\' height=\'100%\' fill=\'%23f8f9fa\'/><text x=\'50%\' y=\'50%\' font-family=\'Arial\' font-size=\'10\' fill=\'%23dc3545\' text-anchor=\'middle\' dy=\'0.3em\'>Error</text></svg>'">
                         <span>{{ $page->page_number }}</span>
                     </button>
                 @endforeach
@@ -193,9 +195,10 @@
                 <div class="pages-grid">
                     @foreach($comic->pages as $page)
                         <div class="page-selector-item" onclick="goToPageAndCloseModal({{ $page->page_number }})">
-                            <img src="data:image/jpeg;base64,{{ base64_encode(file_get_contents($page->image_url)) }}" 
+                            <img src="{{ route('comic.page', ['filename' => $page->image_path]) }}" 
                                  alt="Página {{ $page->page_number }}" 
-                                 class="page-selector-thumb">
+                                 class="page-selector-thumb"
+                                 onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'120\' height=\'160\'><rect width=\'100%\' height=\'100%\' fill=\'%23f8f9fa\'/><text x=\'50%\' y=\'50%\' font-family=\'Arial\' font-size=\'14\' fill=\'%23dc3545\' text-anchor=\'middle\' dy=\'0.3em\'>Error</text></svg>'">
                             <div class="page-number-overlay">{{ $page->page_number }}</div>
                         </div>
                     @endforeach
@@ -488,32 +491,71 @@ function updateRatingStars() {
 }
 
 function submitRating() {
-    if (selectedRating === 0) return;
+    if (selectedRating === 0) {
+        alert('Por favor selecciona una calificación');
+        return;
+    }
+    
+    console.log('Enviando calificación:', selectedRating);
+    
+    // Deshabilitar botón mientras se procesa
+    const submitBtn = document.getElementById('submitRatingBtn');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
     
     fetch(`/comics/{{ $comic->id }}/rate`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
         },
         body: JSON.stringify({
             rating: selectedRating
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Respuesta del servidor:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('Error del servidor (texto):', text);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}\nDetalle: ${text}`);
+            });
+        }
+        
+        return response.json();
+    })
     .then(data => {
+        console.log('Respuesta exitosa:', data);
+        
         if (data.success) {
-            location.reload();
+            alert('✅ Calificación enviada exitosamente');
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('ratingModal'));
+            modal.hide();
+            
+            // Recargar la página para mostrar los cambios
+            setTimeout(() => {
+                location.reload();
+            }, 500);
         } else {
-            alert('Error al enviar la calificación');
+            alert('❌ Error: ' + (data.message || 'Error desconocido'));
+            console.error('Error del servidor:', data);
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        alert('Error al enviar la calificación');
+        console.error('Error completo:', error);
+        alert('❌ Error de conexión: ' + error.message);
+    })
+    .finally(() => {
+        // Restaurar botón
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
     });
 }
-
 // Favorite Functions
 function toggleFavorite(comicId) {
     const url = isFavorite ? `/comics/${comicId}/unfavorite` : `/comics/${comicId}/favorite`;
